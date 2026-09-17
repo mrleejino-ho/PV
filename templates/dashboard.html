@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photovoltaic Monitoring System</title>
+    <style>
+        :root {
+            --bg: #edf2f6;
+            --panel: #eef3f7;
+            --panel-strong: #f7f9fb;
+            --panel-dark: #dde4ec;
+            --surface: rgba(255,255,255,0.45);
+            --shadow-dark: rgba(163, 177, 198, 0.55);
+            --shadow-light: rgba(255,255,255,0.9);
+            --text: #1b2a34;
+            --muted: #66788a;
+            --solar: #f6b73c;
+            --solar-soft: #f9d78b;
+            --green: #52b788;
+            --green-soft: #dff7eb;
+            --red: #e76f51;
+            --red-soft: #ffe1d8;
+            --blue: #5da9e9;
+            --blue-soft: #dfeefe;
+            --shadow: 14px 14px 26px rgba(166, 177, 193, 0.45), -12px -12px 24px rgba(255,255,255,0.85);
+            --inset: inset 7px 7px 12px rgba(163,177,198,0.28), inset -7px -7px 12px rgba(255,255,255,0.8);
+            --radius-xl: 28px;
+            --radius-lg: 22px;
+            --radius-md: 18px;
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, rgba(246,183,60,0.12), transparent 28%),
+                linear-gradient(135deg, #edf2f6 0%, #e6edf3 100%);
+            color: var(--text);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            padding: 26px;
+        }
+
+        .dashboard-shell {
+            max-width: 1460px;
+            margin: 0 auto;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 28px 32px;
+            border-radius: var(--radius-xl);
+            background: rgba(238,243,247,0.78);
+            box-shadow: var(--shadow);
+            margin-bottom: 28px;
+            backdrop-filter: blur(10px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .brand-mark {
+            width: 62px;
+            height: 62px;
+            display: grid;
+            place-items: center;
+            border-radius: 20px;
+            font-size: 1.8rem;
+            background: linear-gradient(145deg, #f8f0d4, #f5d77a);
+            box-shadow: var(--shadow);
+            color: #a76d00;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: clamp(1.7rem, 2vw, 2.6rem);
+            letter-spacing: 0.12em;
+            font-weight: 700;
+        }
+
+        .brand p {
+            margin: 7px 0 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+            letter-spacing: 0.04em;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 12px 18px;
+            border-radius: 999px;
+            background: linear-gradient(145deg, rgba(247,249,251,0.9), rgba(222,232,238,0.8));
+            box-shadow: var(--inset);
+            min-width: 230px;
+            justify-content: center;
+        }
+
+        .pulse {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 0 0 rgba(82,183,136,0.7);
+            animation: pulse 2s infinite;
+        }
+
+        .status-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .status-copy strong {
+            font-size: 0.78rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .status-copy small {
+            color: var(--muted);
+            font-size: 0.72rem;
+        }
+
+        .main-grid {
+            display: grid;
+            gap: 26px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 22px;
+        }
+
+        .card {
+            position: relative;
+            background: linear-gradient(145deg, rgba(241,245,249,0.96), rgba(230,237,242,0.92));
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 22px 20px 18px;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 11px 11px 20px rgba(166,177,193,0.52), -10px -10px 18px rgba(255,255,255,0.9);
+        }
+
+        .card::after {
+            content: "";
+            position: absolute;
+            inset: 0 auto auto 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(246,183,60,0.85), transparent 55%);
+            opacity: 0.75;
+        }
+
+        .metric-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 22px;
+            gap: 12px;
+        }
+
+        .metric-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 15px;
+            display: grid;
+            place-items: center;
+            font-size: 1.3rem;
+            background: linear-gradient(145deg, rgba(255,255,255,0.6), rgba(219,228,237,0.8));
+            box-shadow: var(--shadow);
+        }
+
+        .metric-name {
+            display: block;
+            color: var(--muted);
+            font-size: 0.74rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .metric-value {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 8px;
+            min-height: 52px;
+        }
+
+        .metric-value strong {
+            font-size: clamp(1.7rem, 1.5vw, 2.5rem);
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .metric-value span {
+            font-size: 0.82rem;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .metric-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.78rem;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            background: rgba(82,183,136,0.09);
+            color: var(--green);
+        }
+
+        .metric-status::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            display: inline-block;
+        }
+
+        .metric-status.warning {
+            background: rgba(231,111,81,0.1);
+            color: var(--red);
+        }
+
+        .metric-status.warning::before {
+            background: var(--red);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1.7fr 1fr;
+            gap: 24px;
+        }
+
+        .power-panel {
+            padding: 26px 24px;
+        }
+
+        .section-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .section-label h2 {
+            margin: 0;
+            font-size: 0.82rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .section-label .tag {
+            background: rgba(246,183,60,0.12);
+            color: #8b6408;
+            padding: 7px 12px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .power-wrap {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 22px;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .gauge-ring {
+            width: 230px;
+            height: 230px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: conic-gradient(from 220deg, var(--solar) 0deg, var(--solar) calc(var(--power-progress, 0) * 3.6deg), rgba(163,177,198,0.18) 0deg);
+            box-shadow: var(--shadow);
+            margin: 0 auto;
+            position: relative;
+            transition: background 0.5s ease;
+        }
+
+        .gauge-ring::before {
+            content: "";
+            position: absolute;
+            width: 166px;
+            height: 166px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, rgba(241,245,249,0.96), rgba(225,233,240,0.9));
+            box-shadow: inset 8px 8px 16px rgba(166, 177, 193, 0.25), inset -6px -6px 14px rgba(255,255,255,0.8);
+        }
+
+        .gauge-core {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .gauge-core strong {
+            display: block;
+            font-size: clamp(2.3rem, 2vw, 3rem);
+            letter-spacing: -0.04em;
+        }
+
+        .gauge-core span {
+            color: var(--muted);
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .power-details {
+            display: grid;
+            gap: 14px;
+        }
+
+        .detail-box {
+            padding: 16px 18px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(145deg, rgba(238,243,247,0.9), rgba(220,229,237,0.9));
+            box-shadow: var(--inset);
+        }
+
+        .detail-box label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .detail-box strong {
+            font-size: clamp(1.1rem, 1.2vw, 1.5rem);
+        }
+
+        .env-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0,1fr));
+            gap: 18px;
+        }
+
+        .mini-card {
+            padding: 18px 16px;
+        }
+
+        .mini-card .chip {
+            margin-bottom: 14px;
+            width: 40px;
+            height: 40px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            box-shadow: var(--shadow);
+            background: linear-gradient(145deg, rgba(255,255,255,0.62), rgba(222,232,238,0.8));
+        }
+
+        .mini-card .label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .mini-card h3 {
+            margin: 0;
+            font-size: 0.74rem;
+            color: var(--muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .mini-card .value {
+            font-size: 1.7rem;
+            font-weight: 700;
+            letter-spacing: -0.05em;
+        }
+
+        .mini-card .unit {
+            color: var(--muted);
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-left: 6px;
+        }
+
+        .row-layout {
+            display: grid;
+            grid-template-columns: 1.1fr 1.5fr;
+            gap: 24px;
+            margin-top: 10px;
+        }
+
+        .battery-card {
+            padding: 24px 20px;
+        }
+
+        .battery-card .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .soc-visual {
+            display: grid;
+            place-items: center;
+            padding: 18px 0 8px;
+        }
+
+        .soc-ring {
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: conic-gradient(from 220deg, var(--solar) 0deg, var(--solar) calc(var(--soc-progress, 0) * 3.6deg), rgba(163,177,198,0.18) 0deg);
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .soc-ring::before {
+            content: "";
+            position: absolute;
+            width: 116px;
+            height: 116px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, rgba(241,245,249,0.96), rgba(225,233,240,0.9));
+            box-shadow: inset 6px 6px 12px rgba(166,177,193,0.24), inset -5px -5px 10px rgba(255,255,255,0.8);
+        }
+
+        .soc-value {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .soc-value strong {
+            display: block;
+            font-size: 2rem;
+            line-height: 1;
+        }
+
+        .soc-value span {
+            font-size: 0.8rem;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .battery-stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0,1fr));
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .stat-box {
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.25);
+            box-shadow: var(--inset);
+        }
+
+        .stat-box label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .stat-box strong {
+            font-size: 1.1rem;
+        }
+
+        .table-card {
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 22px 22px 18px;
+        }
+
+        .table-header h3 {
+            margin: 0;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .table-shell {
+            overflow-x: auto;
+            padding: 0 18px 18px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+            min-width: 940px;
+        }
+
+        thead th {
+            background: rgba(255,255,255,0.25);
+            color: var(--muted);
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 12px 14px;
+            text-align: left;
+            border-radius: 12px;
+        }
+
+        tbody td {
+            background: rgba(255,255,255,0.18);
+            padding: 14px 14px;
+            border-top: 1px solid rgba(102,120,138,0.08);
+            border-bottom: 1px solid rgba(102,120,138,0.08);
+            color: var(--text);
+            font-size: 0.88rem;
+        }
+
+        tbody tr:hover td {
+            background: rgba(255,255,255,0.28);
+        }
+
+        tbody td:first-child {
+            border-radius: 12px 0 0 12px;
+        }
+
+        tbody td:last-child {
+            border-radius: 0 12px 12px 0;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        .chart-card {
+            padding: 22px 20px 18px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 260px;
+            display: block;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(221,228,238,0.3));
+            box-shadow: inset 0 0 0 1px rgba(102,120,138,0.05);
+        }
+
+        .regression-card {
+            padding: 22px 20px 18px;
+            margin-top: 24px;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0,1fr));
+            gap: 16px;
+            margin-top: 18px;
+        }
+
+        .analytic-box {
+            padding: 18px 16px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.18);
+            box-shadow: var(--inset);
+        }
+
+        .analytic-box label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .analytic-box strong {
+            font-size: 1.4rem;
+        }
+
+        .analytic-box small {
+            display: block;
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 0.74rem;
+        }
+
+        .regression-visual {
+            margin-top: 20px;
+        }
+
+        .error-panel {
+            display: none;
+            margin-top: 18px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: rgba(231,111,81,0.08);
+            border: 1px solid rgba(231,111,81,0.18);
+            color: #9c3d25;
+            font-weight: 600;
+        }
+
+        .error-panel.visible {
+            display: block;
+        }
+
+        .loading {
+            opacity: 0.75;
+            position: relative;
+        }
+
+        .loading::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transform: translateX(-100%);
+            animation: shimmer 1.4s infinite;
+        }
+
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(82,183,136,0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(82,183,136,0); }
+            100% { box-shadow: 0 0 0 0 rgba(82,183,136,0); }
+        }
+
+        @media (max-width: 1120px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, minmax(0,1fr));
+            }
+
+            .feature-grid,
+            .row-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            body { padding: 16px; }
+
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 18px 18px 20px;
+            }
+
+            .brand {
+                width: 100%;
+            }
+
+            .system-status {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .kpi-grid,
+            .env-grid,
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .power-wrap {
+                grid-template-columns: 1fr;
+            }
+
+            .gauge-ring {
+                width: 200px;
+                height: 200px;
+            }
+
+            .gauge-ring::before {
+                width: 146px;
+                height: 146px;
+            }
+
+            .soc-ring {
+                width: 150px;
+                height: 150px;
+            }
+
+            .soc-ring::before {
+                width: 100px;
+                height: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">☀️</div>
+                <div>
+                    <h1>PHOTOVOLTAIC MONITORING SYSTEM</h1>
+                    <p>Real-Time Photovoltaic Monitoring &amp; Energy Analytics</p>
+                </div>
+            </div>
+
+            <div class="system-status" aria-live="polite">
+                <span class="pulse"></span>
+                <div class="status-copy">
+                    <strong>SYSTEM ONLINE</strong>
+                    <small id="lastUpdatedText">Last updated: --:--:--</small>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-grid">
+            <section class="kpi-grid" aria-label="Summary metrics">
+                <article class="card">
+                    <div class="metric-head">
+                        <div class="metric-icon">⚡</div>
+                    </div>
+                    <span class="metric-name">System Voltage</span>
+                    <div class="metric-value"><strong id="metric-system-voltage">--</strong><span>V</span></div>
+                    <div class="metric-status" id="status-system-voltage">Normal</div>
+                </article>
+
+                <article class="card">
+                    <div class="metric-head">
+                        <div class="metric-icon">🔋</div>
+                    </div>
+                    <span class="metric-name">System Current</span>
+                    <div class="metric-value"><strong id="metric-system-current">--</strong><span>A</span></div>
+                    <div class="metric-status" id="status-system-current">Normal</div>
+                </article>
+
+                <article class="card">
+                    <div class="metric-head">
+                        <div class="metric-icon">⚙️</div>
+                    </div>
+                    <span class="metric-name">Power Output</span>
+                    <div class="metric-value"><strong id="metric-power-output">--</strong><span>W</span></div>
+                    <div class="metric-status" id="status-power-output">Normal</div>
+                </article>
+
+                <article class="card">
+                    <div class="metric-head">
+                        <div class="metric-icon">☀️</div>
+                    </div>
+                    <span class="metric-name">Solar Irradiance</span>
+                    <div class="metric-value"><strong id="metric-bh1750-lux">--</strong><span>lux</span></div>
+                    <div class="metric-status" id="status-bh1750-lux">Normal</div>
+                </article>
+
+                <article class="card">
+                    <div class="metric-head">
+                        <div class="metric-icon">🔋</div>
+                    </div>
+                    <span class="metric-name">Battery Voltage</span>
+                    <div class="metric-value"><strong id="metric-battery-voltage">--</strong><span>V</span></div>
+                    <div class="metric-status" id="status-battery-voltage">Normal</div>
+                </article>
+
+                <article class="card">
+                    <div class="metric-head">
+                        <div class="metric-icon">📊</div>
+                    </div>
+                    <span class="metric-name">Battery SOC</span>
+                    <div class="metric-value"><strong id="metric-battery-soc">--</strong><span>%</span></div>
+                    <div class="metric-status" id="status-battery-soc">Nominal</div>
+                </article>
+
+                <article class="card">
+                    <div class="metric-head">
+                        <div class="metric-icon">🌡️</div>
+                    </div>
+                    <span class="metric-name">Temperature</span>
+                    <div class="metric-value"><strong id="metric-ds18b20-temperature">--</strong><span>°C</span></div>
+                    <div class="metric-status" id="status-ds18b20-temperature">Stable</div>
+                </article>
+
+                <article class="card">
+                    <div class="metric-head">
+                        <div class="metric-icon">💧</div>
+                    </div>
+                    <span class="metric-name">Humidity</span>
+                    <div class="metric-value"><strong id="metric-dht22-humidity">--</strong><span>%</span></div>
+                    <div class="metric-status" id="status-dht22-humidity">Healthy</div>
+                </article>
+            </section>
+
+            <section class="feature-grid">
+                <article class="card power-panel">
+                    <div class="section-label">
+                        <h2>Power Output</h2>
+                        <span class="tag">Live</span>
+                    </div>
+
+                    <div class="power-wrap">
+                        <div class="gauge-ring" id="powerGauge" style="--power-progress: 0;">
+                            <div class="gauge-core">
+                                <strong id="powerCurrentValue">0.00</strong>
+                                <span>Watts</span>
+                            </div>
+                        </div>
+
+                        <div class="power-details">
+                            <div class="detail-box">
+                                <label>Current Power</label>
+                                <strong id="powerCurrentDisplay">0.00 W</strong>
+                            </div>
+                            <div class="detail-box">
+                                <label>Voltage × Current</label>
+                                <strong id="powerVoltageCurrent">0.00 V × 0.00 A</strong>
+                            </div>
+                            <div class="detail-box">
+                                <label>System Status</label>
+                                <strong id="systemStatusText">Monitoring</strong>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div class="section-label">
+                        <h2>Environment</h2>
+                    </div>
+
+                    <div class="env-grid">
+                        <div class="mini-card card">
+                            <div class="chip">🌡️</div>
+                            <div class="label">
+                                <h3>DS18B20</h3>
+                            </div>
+                            <div class="value"><span id="mini-ds18b20-temperature">--</span><span class="unit">°C</span></div>
+                        </div>
+
+                        <div class="mini-card card">
+                            <div class="chip">🌡️</div>
+                            <div class="label">
+                                <h3>DHT22</h3>
+                            </div>
+                            <div class="value"><span id="mini-dht22-temperature">--</span><span class="unit">°C</span></div>
+                        </div>
+
+                        <div class="mini-card card">
+                            <div class="chip">💧</div>
+                            <div class="label">
+                                <h3>Humidity</h3>
+                            </div>
+                            <div class="value"><span id="mini-dht22-humidity">--</span><span class="unit">%</span></div>
+                        </div>
+
+                        <div class="mini-card card">
+                            <div class="chip">☀️</div>
+                            <div class="label">
+                                <h3>Light</h3>
+                            </div>
+                            <div class="value"><span id="mini-bh1750-lux">--</span><span class="unit">lux</span></div>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="row-layout">
+                <article class="card battery-card">
+                    <div class="section-label">
+                        <h2>Battery &amp; Energy</h2>
+                    </div>
+
+                    <div class="row">
+                        <strong>Battery Charge</strong>
+                        <span id="batteryChargeLabel">--</span>
+                    </div>
+
+                    <div class="soc-visual">
+                        <div class="soc-ring" id="socRing" style="--soc-progress: 0;">
+                            <div class="soc-value">
+                                <strong id="batterySocValue">0%</strong>
+                                <span>SOC</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="battery-stats">
+                        <div class="stat-box">
+                            <label>Battery Voltage</label>
+                            <strong id="batteryVoltageValue">-- V</strong>
+                        </div>
+                        <div class="stat-box">
+                            <label>System Voltage</label>
+                            <strong id="systemVoltageValue">-- V</strong>
+                        </div>
+                        <div class="stat-box">
+                            <label>System Current</label>
+                            <strong id="systemCurrentValue">-- A</strong>
+                        </div>
+                        <div class="stat-box">
+                            <label>Power</label>
+                            <strong id="powerValueFinal">-- W</strong>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="card table-card">
+                    <div class="table-header">
+                        <h3>Historical Sensor Data</h3>
+                    </div>
+
+                    <div class="table-shell">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>DS18B20</th>
+                                    <th>DHT22</th>
+                                    <th>Humidity</th>
+                                    <th>Light</th>
+                                    <th>Battery</th>
+                                    <th>SOC</th>
+                                    <th>Voltage</th>
+                                    <th>Current</th>
+                                    <th>Power</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTable"></tbody>
+                        </table>
+                    </div>
+                </article>
+            </section>
+
+            <section class="chart-grid">
+                <article class="card chart-card">
+                    <div class="section-label">
+                        <h2>Power Output Over Time</h2>
+                    </div>
+                    <canvas id="chartPower" width="600" height="260"></canvas>
+                </article>
+
+                <article class="card chart-card">
+                    <div class="section-label">
+                        <h2>System Voltage Over Time</h2>
+                    </div>
+                    <canvas id="chartVoltage" width="600" height="260"></canvas>
+                </article>
+
+                <article class="card chart-card">
+                    <div class="section-label">
+                        <h2>Temperature Over Time</h2>
+                    </div>
+                    <canvas id="chartTemperature" width="600" height="260"></canvas>
+                </article>
+
+                <article class="card chart-card">
+                    <div class="section-label">
+                        <h2>Solar Irradiance Over Time</h2>
+                    </div>
+                    <canvas id="chartLight" width="600" height="260"></canvas>
+                </article>
+            </section>
+
+            <section class="card regression-card">
+                <div class="section-label">
+                    <h2>Energy Prediction &amp; Analytics</h2>
+                    <span class="tag">Multiple Linear Regression</span>
+                </div>
+
+                <div class="analytics-grid" id="regressionMetrics">
+                    <div class="analytic-box">
+                        <label>Data Points</label>
+                        <strong id="regression-data-points">--</strong>
+                    </div>
+                    <div class="analytic-box">
+                        <label>Training</label>
+                        <strong id="regression-training">--</strong>
+                    </div>
+                    <div class="analytic-box">
+                        <label>Testing</label>
+                        <strong id="regression-testing">--</strong>
+                    </div>
+                    <div class="analytic-box">
+                        <label>R²</label>
+                        <strong id="regression-r2">--</strong>
+                    </div>
+                    <div class="analytic-box">
+                        <label>MAE</label>
+                        <strong id="regression-mae">--</strong>
+                    </div>
+                    <div class="analytic-box">
+                        <label>RMSE</label>
+                        <strong id="regression-rmse">--</strong>
+                    </div>
+                    <div class="analytic-box">
+                        <label>Actual Power</label>
+                        <strong id="regression-actual-power">--</strong>
+                    </div>
+                    <div class="analytic-box">
+                        <label>Predicted Power</label>
+                        <strong id="regression-predicted-power">--</strong>
+                    </div>
+                </div>
+
+                <div class="error-panel" id="regressionError" aria-live="polite"></div>
+
+                <div class="regression-visual">
+                    <canvas id="regressionComparisonChart" width="1200" height="260"></canvas>
+                </div>
+
+                <div class="analytic-box" style="margin-top: 18px;">
+                    <label>Regression Equation</label>
+                    <strong id="regressionEquation" style="font-size: 1rem; display: block; line-height: 1.6;">--</strong>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const safeNumber = (value, fallback = 0) => {
+            const num = Number(value);
+            return Number.isFinite(num) ? num : fallback;
+        };
+
+        const formatMetric = (value, digits = 2, fallback = '--') => {
+            if (value === null || value === undefined || Number.isNaN(Number(value))) {
+                return fallback;
+            }
+            return Number(value).toFixed(digits);
+        };
+
+        const setText = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        };
+
+        const setStatus = (id, label, warning = false) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = label;
+            el.classList.toggle('warning', warning);
+        };
+
+        const setGaugeProgress = (elementId, percent, ringName = 'power') => {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            if (ringName === 'power') {
+                el.style.setProperty('--power-progress', Math.max(0, Math.min(100, percent)));
+            } else {
+                el.style.setProperty('--soc-progress', Math.max(0, Math.min(100, percent)));
+            }
+        };
+
+        function renderHistoryTable(rows) {
+            const table = document.getElementById('historyTable');
+            if (!table) return;
+
+            table.innerHTML = '';
+
+            if (!Array.isArray(rows) || rows.length === 0) {
+                table.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 24px; color: var(--muted);">No historical sensor data available yet.</td></tr>';
+                return;
+            }
+
+            rows.slice(0, 25).forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.created_at || '--'}</td>
+                    <td>${formatMetric(row.ds18b20_temperature, 2)} °C</td>
+                    <td>${formatMetric(row.dht22_temperature, 2)} °C</td>
+                    <td>${formatMetric(row.dht22_humidity, 2)} %</td>
+                    <td>${formatMetric(row.bh1750_lux, 2)} lux</td>
+                    <td>${formatMetric(row.battery_voltage, 3)} V</td>
+                    <td>${formatMetric(row.battery_soc, 2)} %</td>
+                    <td>${formatMetric(row.system_voltage, 2)} V</td>
+                    <td>${formatMetric(row.system_current, 2)} A</td>
+                    <td>${formatMetric(row.power_watts, 2)} W</td>
+                `;
+                table.appendChild(tr);
+            });
+        }
+
+        function renderChartLine(canvasId, values, strokeColor, fillColor, yFormatter = (v) => `${v}`) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const data = values.filter((value) => Number.isFinite(Number(value)));
+            if (!data.length) {
+                ctx.fillStyle = '#66788a';
+                ctx.font = '16px sans-serif';
+                ctx.fillText('No data available', 20, 30);
+                return;
+            }
+
+            const padding = { top: 18, right: 12, bottom: 28, left: 42 };
+            const min = Math.min(...data);
+            const max = Math.max(...data);
+            const range = max - min || 1;
+
+            ctx.strokeStyle = 'rgba(102,120,138,0.18)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i += 1) {
+                const y = padding.top + ((height - padding.top - padding.bottom) / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(width - padding.right, y);
+                ctx.stroke();
+            }
+
+            ctx.beginPath();
+            data.forEach((value, index) => {
+                const x = padding.left + ((width - padding.left - padding.right) / Math.max(1, data.length - 1)) * index;
+                const y = height - padding.bottom - ((value - min) / range) * (height - padding.top - padding.bottom);
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = 3;
+            ctx.shadowColor = strokeColor;
+            ctx.shadowBlur = 12;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            const fillGradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
+            fillGradient.addColorStop(0, fillColor);
+            fillGradient.addColorStop(1, 'rgba(255,255,255,0)');
+
+            ctx.beginPath();
+            data.forEach((value, index) => {
+                const x = padding.left + ((width - padding.left - padding.right) / Math.max(1, data.length - 1)) * index;
+                const y = height - padding.bottom - ((value - min) / range) * (height - padding.top - padding.bottom);
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            ctx.lineTo(width - padding.right, height - padding.bottom);
+            ctx.lineTo(padding.left, height - padding.bottom);
+            ctx.closePath();
+            ctx.fillStyle = fillGradient;
+            ctx.fill();
+
+            ctx.strokeStyle = 'rgba(102,120,138,0.32)';
+            ctx.beginPath();
+            ctx.moveTo(padding.left, height - padding.bottom);
+            ctx.lineTo(width - padding.right, height - padding.bottom);
+            ctx.stroke();
+
+            const labelValue = yFormatter(max);
+            ctx.fillStyle = '#66788a';
+            ctx.font = '12px sans-serif';
+            ctx.fillText(labelValue, width - 58, 22);
+        }
+
+        function renderRegressionComparison(actualPower, predictedPower) {
+            const canvas = document.getElementById('regressionComparisonChart');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = { top: 24, right: 24, bottom: 38, left: 42 };
+
+            ctx.clearRect(0, 0, width, height);
+
+            const values = [safeNumber(actualPower), safeNumber(predictedPower)];
+            const maxVal = Math.max(...values, 1);
+
+            ctx.strokeStyle = 'rgba(102,120,138,0.18)';
+            for (let i = 0; i <= 4; i += 1) {
+                const y = padding.top + ((height - padding.top - padding.bottom) / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(width - padding.right, y);
+                ctx.stroke();
+            }
+
+            const barWidth = 150;
+            const x1 = width / 2 - barWidth - 30;
+            const x2 = width / 2 + 30;
+            const y1 = height - padding.bottom - (safeNumber(actualPower) / maxVal) * (height - padding.top - padding.bottom);
+            const y2 = height - padding.bottom - (safeNumber(predictedPower) / maxVal) * (height - padding.top - padding.bottom);
+
+            ctx.fillStyle = '#f6b73c';
+            ctx.fillRect(x1, y1, barWidth, height - padding.bottom - y1);
+
+            ctx.fillStyle = '#5da9e9';
+            ctx.fillRect(x2, y2, barWidth, height - padding.bottom - y2);
+
+            ctx.fillStyle = '#66788a';
+            ctx.font = '14px sans-serif';
+            ctx.fillText('Actual Power', x1 + 18, height - 10);
+            ctx.fillText('Predicted Power', x2 + 10, height - 10);
+
+            ctx.fillStyle = '#1b2a34';
+            ctx.font = '12px sans-serif';
+            ctx.fillText(`${safeNumber(actualPower).toFixed(2)} W`, x1 + 24, y1 - 8);
+            ctx.fillText(`${safeNumber(predictedPower).toFixed(2)} W`, x2 + 18, y2 - 8);
+        }
+
+        async function fetchJson(url) {
+            const response = await fetch(url);
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({ message: 'Request failed.' }));
+                throw new Error(payload.message || 'Request failed.');
+            }
+            return response.json();
+        }
+
+        async function loadCurrentData() {
+            try {
+                const data = await fetchJson('/api/sensor-data');
+
+                const ds18b20 = safeNumber(data.ds18b20_temperature);
+                const dht22 = safeNumber(data.dht22_temperature);
+                const humidity = safeNumber(data.dht22_humidity);
+                const lux = safeNumber(data.bh1750_lux);
+                const batteryVoltage = safeNumber(data.battery_voltage);
+                const batterySoc = safeNumber(data.battery_soc);
+                const systemVoltage = safeNumber(data.system_voltage);
+                const systemCurrent = safeNumber(data.system_current);
+                const powerWatts = safeNumber(data.power_watts);
+                const lastUpdate = data.last_update || '--';
+
+                setText('metric-system-voltage', formatMetric(systemVoltage, 2));
+                setText('metric-system-current', formatMetric(systemCurrent, 2));
+                setText('metric-power-output', formatMetric(powerWatts, 2));
+                setText('metric-bh1750-lux', formatMetric(lux, 2));
+                setText('metric-battery-voltage', formatMetric(batteryVoltage, 3));
+                setText('metric-battery-soc', formatMetric(batterySoc, 2));
+                setText('metric-ds18b20-temperature', formatMetric(ds18b20, 2));
+                setText('metric-dht22-humidity', formatMetric(humidity, 2));
+
+                setText('mini-ds18b20-temperature', formatMetric(ds18b20, 2));
+                setText('mini-dht22-temperature', formatMetric(dht22, 2));
+                setText('mini-dht22-humidity', formatMetric(humidity, 2));
+                setText('mini-bh1750-lux', formatMetric(lux, 2));
+
+                setText('powerCurrentValue', formatMetric(powerWatts, 2));
+                setText('powerCurrentDisplay', `${formatMetric(powerWatts, 2)} W`);
+                setText('powerVoltageCurrent', `${formatMetric(systemVoltage, 2)} V × ${formatMetric(systemCurrent, 2)} A`);
+                setText('systemStatusText', powerWatts > 0 ? 'Generating' : 'Monitoring');
+                setText('batteryVoltageValue', `${formatMetric(batteryVoltage, 3)} V`);
+                setText('systemVoltageValue', `${formatMetric(systemVoltage, 2)} V`);
+                setText('systemCurrentValue', `${formatMetric(systemCurrent, 2)} A`);
+                setText('powerValueFinal', `${formatMetric(powerWatts, 2)} W`);
+                setText('batterySocValue', `${formatMetric(batterySoc, 0)}%`);
+                setText('batteryChargeLabel', `${formatMetric(batterySoc, 0)}%`);
+                setText('lastUpdatedText', `Last updated: ${lastUpdate}`);
+
+                setGaugeProgress('powerGauge', (powerWatts / Math.max(1000, powerWatts + 100)) * 100, 'power');
+                setGaugeProgress('socRing', batterySoc, 'soc');
+
+                const statusLine = (value, low, high) => {
+                    if (value < low || value > high) return 'Warning';
+                    return 'Normal';
+                };
+
+                setStatus('status-system-voltage', statusLine(systemVoltage, 0, 100) === 'Warning' ? 'Warning' : 'Normal', statusLine(systemVoltage, 0, 100) === 'Warning');
+                setStatus('status-system-current', statusLine(systemCurrent, 0, 50) === 'Warning' ? 'Warning' : 'Normal', statusLine(systemCurrent, 0, 50) === 'Warning');
+                setStatus('status-power-output', powerWatts > 0 ? 'Normal' : 'Idle', powerWatts <= 0);
+                setStatus('status-bh1750-lux', lux > 0 ? 'Normal' : 'Idle', lux <= 0);
+                setStatus('status-battery-voltage', batteryVoltage > 0 ? 'Normal' : 'Warning', batteryVoltage <= 0);
+                setStatus('status-battery-soc', batterySoc > 20 ? 'Nominal' : 'Low', batterySoc <= 20);
+                setStatus('status-ds18b20-temperature', ds18b20 > 0 ? 'Stable' : 'Idle', ds18b20 <= 0);
+                setStatus('status-dht22-humidity', humidity >= 0 ? 'Healthy' : 'Low', humidity < 0);
+            } catch (error) {
+                console.error('Current data error:', error);
+                setText('lastUpdatedText', 'Last updated: connection error');
+                setText('systemStatusText', 'Offline');
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const data = await fetchJson('/api/database');
+                renderHistoryTable(Array.isArray(data) ? data : []);
+
+                if (!Array.isArray(data) || !data.length) return;
+
+                const powerSeries = data.map((row) => safeNumber(row.power_watts));
+                const voltageSeries = data.map((row) => safeNumber(row.system_voltage));
+                const temperatureSeries = data.map((row) => safeNumber(row.ds18b20_temperature));
+                const lightSeries = data.map((row) => safeNumber(row.bh1750_lux));
+
+                renderChartLine('chartPower', powerSeries, '#f6b73c', 'rgba(246,183,60,0.22)', (v) => `${Number(v).toFixed(0)} W`);
+                renderChartLine('chartVoltage', voltageSeries, '#52b788', 'rgba(82,183,136,0.18)', (v) => `${Number(v).toFixed(2)} V`);
+                renderChartLine('chartTemperature', temperatureSeries, '#5da9e9', 'rgba(93,169,233,0.18)', (v) => `${Number(v).toFixed(1)} °C`);
+                renderChartLine('chartLight', lightSeries, '#f0915c', 'rgba(240,145,92,0.18)', (v) => `${Number(v).toFixed(0)} lux`);
+            } catch (error) {
+                console.error('History data error:', error);
+                renderHistoryTable([]);
+            }
+        }
+
+        async function loadRegression() {
+            const errorPanel = document.getElementById('regressionError');
+            try {
+                const data = await fetchJson('/api/regression');
+                errorPanel.classList.remove('visible');
+                errorPanel.textContent = '';
+
+                setText('regression-data-points', String(data.data_points ?? '--'));
+                setText('regression-training', String(data.training_points ?? '--'));
+                setText('regression-testing', String(data.testing_points ?? '--'));
+                setText('regression-r2', formatMetric(data.r2 ?? 0, 4));
+                setText('regression-mae', `${formatMetric(data.mae ?? 0, 4)} W`);
+                setText('regression-rmse', `${formatMetric(data.rmse ?? 0, 4)} W`);
+                setText('regression-actual-power', `${formatMetric(data.actual_power ?? 0, 4)} W`);
+                setText('regression-predicted-power', `${formatMetric(data.predicted_power ?? 0, 4)} W`);
+                setText('regressionEquation', data.equation || '--');
+
+                renderRegressionComparison(safeNumber(data.actual_power), safeNumber(data.predicted_power));
+            } catch (error) {
+                console.error('Regression data error:', error);
+                errorPanel.textContent = error.message || 'Unable to load regression analytics.';
+                errorPanel.classList.add('visible');
+                setText('regression-data-points', '--');
+                setText('regression-training', '--');
+                setText('regression-testing', '--');
+                setText('regression-r2', '--');
+                setText('regression-mae', '--');
+                setText('regression-rmse', '--');
+                setText('regression-actual-power', '--');
+                setText('regression-predicted-power', '--');
+                setText('regressionEquation', '--');
+                renderRegressionComparison(0, 0);
+            }
+        }
+
+        loadCurrentData();
+        loadHistory();
+        loadRegression();
+
+        setInterval(loadCurrentData, 5000);
+        setInterval(loadHistory, 20000);
+        setInterval(loadRegression, 30000);
+    </script>
+</body>
+</html>
