@@ -1,6 +1,11 @@
+import os
 import serial
 import time
 import requests
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # ============================================================
@@ -27,7 +32,10 @@ ARDUINO_PORT = "COM4"
 
 BAUD_RATE = 9600
 
-FLASK_URL = "http://127.0.0.1:5000/api/receive-sensor"
+FLASK_URL = os.getenv(
+    "FLASK_URL",
+    "http://127.0.0.1:5000/api/receive-sensor"
+)
 
 READ_INTERVAL = 20
 

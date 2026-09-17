@@ -274,6 +274,14 @@ def receive_sensor():
 
         print("========================================\n")
 
+        try:
+            save_current_data_to_supabase()
+        except Exception as e:
+            return jsonify({
+                "status": "error",
+                "message": f"Sensor data received, but Supabase insert failed: {e}"
+            }), 500
+
 
         return jsonify({
 
@@ -519,35 +527,7 @@ def save_current_data_to_supabase():
         print("Error type:", type(e).__name__)
         print("Error:", repr(e))
         print("========================================\n")
-
-
-# ============================================================
-# DATABASE TIMER
-# ============================================================
-
-def database_timer():
-
-    print("Database timer started.")
-    print("Supabase save interval: 60 seconds\n")
-
-
-    while True:
-
-        try:
-
-            # Wait 60 seconds
-            time.sleep(60)
-
-            # Save latest sensor data
-            save_current_data_to_supabase()
-
-
-        except Exception as e:
-
-            print("Database timer error:")
-            print(e)
-
-            time.sleep(5)
+        raise
 
 
 # ============================================================
@@ -1219,22 +1199,6 @@ def home():
 # ============================================================
 
 if __name__ == "__main__":
-
-
-    # ========================================================
-    # START DATABASE TIMER
-    # ========================================================
-
-    database_thread = threading.Thread(
-
-        target=database_timer,
-
-        daemon=True
-
-    )
-
-    database_thread.start()
-
 
     # ========================================================
     # START FLASK
