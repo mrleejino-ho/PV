@@ -20,7 +20,9 @@ load_dotenv()
 # Supabase
 #
 # Arduino reading interval: 20 seconds
-# Supabase saving interval: 60 seconds
+# Supabase is written by Flask when each POST is received.
+# The Arduino sends a quality/status field so estimated values
+# can be kept separate from directly measured research data.
 # ============================================================
 
 
@@ -137,10 +139,11 @@ while True:
         # System Voltage,
         # System Current,
         # Power
+        # Quality/status flags
         #
         # Example:
         #
-        # 25.37,26.80,95.20,450.00,12.10,85.00,3.75,0.50,1.88
+        # 25.37,26.80,95.20,450.00,12.10,85.00,3.75,0.50,1.88,MEASURED
         #
         # ====================================================
 
@@ -151,14 +154,14 @@ while True:
         # CHECK NUMBER OF VALUES
         # ====================================================
 
-        if len(values) != 9:
+        if len(values) != 10:
 
             print(
                 "Unexpected data format."
             )
 
             print(
-                f"Expected 9 values, "
+                f"Expected 10 values, "
                 f"received {len(values)}."
             )
 
@@ -206,6 +209,8 @@ while True:
             power_watts = float(
                 values[8]
             )
+
+            quality = values[9].strip() or "MEASURED"
 
 
             # =================================================
@@ -262,6 +267,10 @@ while True:
                 f"{power_watts:.2f} W"
             )
 
+            print(
+                f"Data quality        : {quality}"
+            )
+
             print("----------------------------------------")
 
 
@@ -303,7 +312,10 @@ while True:
                     system_current,
 
                 "power_watts":
-                    power_watts
+                    power_watts,
+
+                "quality":
+                    quality
 
             }
 

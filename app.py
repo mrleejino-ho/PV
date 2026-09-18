@@ -62,6 +62,8 @@ sensor_data = {
     "system_voltage": 0.0,
     "system_current": 0.0,
     "power_watts": 0.0,
+    "measurement_quality": "LEGACY",
+    "estimated_fields": [],
 
     "last_update": None
 }
@@ -169,6 +171,19 @@ def receive_sensor():
             )
         )
 
+        measurement_quality = str(
+            data.get(
+                "quality",
+                "MEASURED"
+            )
+        )
+
+        estimated_fields = [
+            item.strip()
+            for item in measurement_quality.split(";")
+            if "ESTIMATED" in item or "INVALID" in item or "UNAVAILABLE" in item
+        ]
+
 
         # ====================================================
         # UPDATE CURRENT SENSOR DATA
@@ -211,6 +226,14 @@ def receive_sensor():
             sensor_data[
                 "power_watts"
             ] = power_watts
+
+            sensor_data[
+                "measurement_quality"
+            ] = measurement_quality
+
+            sensor_data[
+                "estimated_fields"
+            ] = estimated_fields
 
             sensor_data[
                 "last_update"
@@ -270,6 +293,10 @@ def receive_sensor():
         print(
             f"Power               : "
             f"{power_watts:.2f} W"
+        )
+
+        print(
+            f"Data quality        : {measurement_quality}"
         )
 
         print("========================================\n")
@@ -411,9 +438,17 @@ def save_current_data_to_supabase():
             "system_current":
                 current_data[
                     "system_current"
-                ]
+                ],
 
-            
+            "measurement_quality":
+                current_data[
+                    "measurement_quality"
+                ],
+
+            "estimated_fields":
+                current_data[
+                    "estimated_fields"
+                ]
 
         }
 
@@ -596,7 +631,9 @@ def regression():
                 "dht22_temperature,"
                 "dht22_humidity,"
                 "bh1750_lux,"
-                "power_watts"
+                "power_watts,"
+                "measurement_quality,"
+                "estimated_fields"
             )
             .order(
                 "created_at",
@@ -612,6 +649,7 @@ def regression():
         print(
             f"Records retrieved: {len(data)}"
         )
+        print("Regression will use directly measured records only.")
 
 
         # ====================================================
@@ -671,6 +709,21 @@ def regression():
                 # CHECK FOR FINITE VALUES
                 # --------------------------------------------
 
+                measurement_quality = str(
+                    row.get("measurement_quality", "LEGACY")
+                )
+
+                estimated_fields = row.get("estimated_fields") or []
+
+                # Regression must use directly measured records only.
+                # Estimated/imputed values remain useful for monitoring,
+                # but including them would make the statistical result
+                # look more certain than the physical measurements justify.
+                is_measured = (
+                    measurement_quality == "MEASURED"
+                    and len(estimated_fields) == 0
+                )
+
                 values = [
                     ds18b20,
                     dht22,
@@ -680,9 +733,12 @@ def regression():
                 ]
 
 
-                if all(
-                    np.isfinite(value)
-                    for value in values
+                if (
+                    is_measured
+                    and all(
+                        np.isfinite(value)
+                        for value in values
+                    )
                 ):
 
                     clean_data.append(values)
