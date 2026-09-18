@@ -34,7 +34,7 @@ BAUD_RATE = 9600
 
 FLASK_URL = os.getenv(
     "FLASK_URL",
-    "http://127.0.0.1:5000/api/receive-sensor"
+    "https://pvmonitoringsystem.vercel.app/api/receive-sensor"
 )
 
 READ_INTERVAL = 20
